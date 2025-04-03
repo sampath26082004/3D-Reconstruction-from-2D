@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel2Shape - Transform Images to 3D</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+        }
+        .glass-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        .animate-character {
+            background-image: linear-gradient(-225deg, #231557 0%, #44107a 29%, #ff1361 67%, #fff800 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textclip 2s linear infinite;
+        }
+        @keyframes textclip {
+            to {
+                background-position: 200% center;
+            }
+        }
+        .btn-custom {
+            background: linear-gradient(to right, #11998e, #38ef7d);
+            border: none;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .icon-3d {
+            animation: icon3d 200ms 10;
+        }
+        @keyframes icon3d {
+            0% {
+                text-shadow: 5px 4px #f44336, -5px -6px #2196f3;
+            }
+            25% {
+                text-shadow: -5px -6px #f44336, 5px 4px #2196f3;
+            }
+            50% {
+                text-shadow: 5px -4px #f44336, -8px 4px #2196f3;
+            }
+            75% {
+                text-shadow: -8px -4px #f44336, -5px -4px #2196f3;
+            }
+            100% {
+                text-shadow: -5px 0 #f44336, 5px -4px #2196f3;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 glass-container text-center text-white">
+                <h1 class="display-4 fw-bold mb-4">Welcome to <span class="animate-character">Pixel2Shape</span></h1>
+                <p class="lead mb-5">Transform your 2D images into stunning 3D shapes with our cutting-edge AI technology.</p>
+                <a href="{% url 'upload_image' %}" class="btn btn-custom btn-lg px-5 py-3 mb-5">
+                    <i class="fas fa-upload me-2"></i> Start Generating
+                </a>
+                <div class="row mt-5">
+                    <div class="col-md-4">
+                        <i class="fas fa-magic fa-3x mb-3 icon-3d"></i>
+                        <h4>AI-Powered</h4>
+                        <p>Advanced algorithms for accurate 3D conversion</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-bolt fa-3x mb-3 icon-3d"></i>
+                        <h4>Fast Processing</h4>
+                        <p>Quick turnaround for your 3D models</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-cube fa-3x mb-3 icon-3d"></i>
+                        <h4>High Quality</h4>
+                        <p>Detailed and precise 3D renderings</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+</body>
+</html>
