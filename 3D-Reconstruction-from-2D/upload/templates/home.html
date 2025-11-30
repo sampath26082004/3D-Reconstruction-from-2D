@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Reconstruction from 2D - Transform Images to 3D</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+
+        :root {
+            /* Professional Theme Colors */
+            --primary-color: #1e40af;
+            --secondary-color: #3b82f6;
+            --accent-color: #06b6d4;
+            --accent-hover: #0891b2;
+            --accent-light: #67e8f9;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            
+            /* Professional Gradients */
+            --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            --gradient-secondary: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --gradient-hero: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+            
+            /* Text Colors */
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --text-light: #6b7280;
+            --text-accent: #3b82f6;
+            
+            /* Background Colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-accent: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-glass: rgba(255, 255, 255, 0.95);
+            
+            /* Border Colors */
+            --border-color: #e2e8f0;
+            --border-accent: #cbd5e1;
+            --border-glow: rgba(59, 130, 246, 0.2);
+            
+            /* Professional Shadows */
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15), 0 0 40px rgba(59, 130, 246, 0.05);
+            --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Professional Background Effects */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-glow);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .navbar.dark-mode {
+            background: rgba(26, 54, 93, 0.95);
+            border-bottom-color: var(--border-color-dark);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary-color) !important;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand:hover {
+            transform: scale(1.05);
+            color: var(--accent-color) !important;
+        }
+
+        .nav-link {
+            color: var(--text-secondary) !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem !important;
+            border-radius: 8px;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-color) !important;
+            background: var(--bg-accent);
+            transform: translateY(-1px);
+        }
+
+        .nav-link.active {
+            color: var(--accent-color) !important;
+            background: var(--bg-accent);
+        }
+
+        /* Dark Mode Toggle */
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 1rem;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+            transform: scale(1.1);
+        }
+
+        .dark-mode .theme-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary-color) !important;
+            transition: color 0.3s ease;
+        }
+
+
+
+        .nav-link {
+            color: var(--text-secondary) !important;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            margin: 0 0.5rem;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-color) !important;
+        }
+
+        .nav-link.active {
+            color: var(--accent-color) !important;
+        }
+
+
+
+
+
+        /* Hero Section */
+        .hero-section {
+            background: var(--gradient-hero);
+            color: white;
+            padding: 6rem 0;
+            margin-bottom: 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+            opacity: 0.6;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* 3D text effect for hero title */
+        .hero-title.hero-3d {
+            perspective: 800px;
+            transform-style: preserve-3d;
+            text-shadow:
+                0 1px 0 rgba(0,0,0,0.05),
+                0 2px 0 rgba(0,0,0,0.05),
+                0 3px 0 rgba(0,0,0,0.04),
+                0 4px 0 rgba(0,0,0,0.04),
+                0 6px 12px rgba(0,0,0,0.25);
+            letter-spacing: 0.5px;
+        }
+        .hero-title.hero-3d span {
+            display: inline-block;
+            /* Straight horizontal orientation (remove tilt) */
+            transform: none;
+        }
+
+        /* Colored segments for title */
+        .hero-title .segment-main {
+            background: linear-gradient(90deg, #1ee3cf, #6a5af9, #c33c7a, #1ee3cf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 300% 100%;
+            animation: gradientShift 8s linear infinite;
+        }
+        .hero-title .segment-2d {
+            background: linear-gradient(90deg, #ffb800, #ff7a00, #ffb800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 300% 100%;
+            animation: gradientShift 8s linear infinite;
+        }
+        .hero-title .segment-3d {
+            background: linear-gradient(90deg, #7cf4ff, #00c0ff, #7cf4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 300% 100%;
+            animation: gradientShift 8s linear infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            font-weight: 400;
+            margin-bottom: 2.5rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Buttons */
+        .btn-primary-custom {
+            background: var(--gradient-accent);
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+            text-decoration: none;
+        }
+
+        .btn-secondary-custom {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary-custom:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: white;
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 6rem 0;
+            background: var(--bg-secondary);
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            height: 100%;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--accent-color);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient-accent);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .feature-description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Models Gallery Section */
+        .models-section {
+            padding: 6rem 0;
+            background: var(--bg-primary);
+        }
+
+        .models-container {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+        }
+
+        .model-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            height: 100%;
+        }
+
+        .model-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--accent-color);
+        }
+
+        .model-thumbnail {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .model-card:hover .model-thumbnail {
+            transform: scale(1.02);
+        }
+
+        .model-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .model-size {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .view-3d-btn {
+            background: var(--gradient-accent);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .view-3d-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+            text-decoration: none;
+        }
+
+        .no-models {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .no-models i {
+            font-size: 4rem;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+        }
+
+        /* User Dashboard Section */
+        .dashboard-section {
+            padding: 6rem 0;
+            background: var(--bg-secondary);
+            margin-bottom: 4rem;
+            position: relative;
+        }
+
+        .dashboard-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 40% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 60% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .dashboard-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .dashboard-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .dashboard-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--accent-color);
+        }
+
+        .dashboard-card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .dashboard-card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+        }
+
+        .dashboard-card-icon.primary {
+            background: var(--gradient-accent);
+        }
+
+        .dashboard-card-icon.success {
+            background: var(--gradient-success);
+        }
+
+        .dashboard-card-icon.warning {
+            background: var(--gradient-warning);
+        }
+
+        .dashboard-card:hover .dashboard-card-icon {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .dashboard-card-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .dashboard-card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-card-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .dashboard-card-change {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .change-positive {
+            color: var(--success-color);
+        }
+
+        .change-negative {
+            color: var(--error-color);
+        }
+
+        .quick-actions {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .quick-actions-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .quick-action-btn {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quick-action-btn:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            text-decoration: none;
+        }
+
+        .quick-action-btn i {
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .quick-action-btn:hover i {
+            transform: scale(1.1);
+        }
+
+        .recent-activity {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .recent-activity-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .activity-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-color);
+            font-size: 1rem;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            color: var(--text-light);
+            font-size: 0.8rem;
+        }
+
+        .activity-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-completed {
+            background: #f0fff4;
+            color: var(--success-color);
+        }
+
+        .status-processing {
+            background: #fffaf0;
+            color: var(--warning-color);
+        }
+
+        .status-failed {
+            background: #fed7d7;
+            color: var(--error-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .models-container {
+                padding: 2rem;
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .models-container {
+                padding: 2rem;
+            }
+
+            .feature-card:hover,
+            .model-card:hover,
+            .dashboard-card:hover {
+                transform: translateY(-4px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-section {
+                padding: 4rem 0;
+            }
+
+            .feature-card,
+            .model-card,
+            .dashboard-card {
+                padding: 1.5rem;
+            }
+
+            .btn-primary-custom,
+            .btn-secondary-custom {
+                padding: 0.75rem 1.5rem;
+                font-size: 1rem;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="fas fa-cube me-2"></i>3D Reconstruction
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'home' %}">Home</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'gallery' %}">Gallery</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'upload_image' %}">Upload</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'logout' %}" style="display:flex;align-items:center;gap:.5rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                                Logout
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}" style="display:flex;align-items:center;gap:.5rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                                Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'signup' %}" style="display:flex;align-items:center;gap:.5rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                                Sign Up
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row justify-content-center text-center">
+                <div class="col-lg-10 hero-content">
+                    <h1 class="hero-title hero-3d">
+                        <span>
+                            <span class="segment-main">Transform </span>
+                            <span class="segment-2d">2D</span>
+                            <span class="segment-main"> Images into Stunning </span>
+                            <span class="segment-3d">3D</span>
+                            <span class="segment-main"> Models</span>
+                        </span>
+                    </h1>
+                    <p class="hero-subtitle">Leverage cutting-edge AI technology to convert your 2D images into high-quality 3D shapes with professional-grade precision and detail.</p>
+                    <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'upload_image' %}" class="btn btn-primary-custom">
+                                <i class="fas fa-upload me-2"></i>Start Generating
+                            </a>
+                            <a href="{% url 'gallery' %}" class="btn btn-secondary-custom">
+                                <i class="fas fa-cube me-2"></i>View Gallery
+                            </a>
+                        {% else %}
+                            <a href="{% url 'signup' %}" class="btn btn-primary-custom">
+                                <i class="fas fa-user-plus me-2"></i>Create Account
+                            </a>
+                            <a href="{% url 'login' %}" class="btn btn-secondary-custom">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="container">
+            <h2 class="section-title">Why Choose Our Platform?</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h3 class="feature-title">AI-Powered Technology</h3>
+                        <p class="feature-description">Advanced machine learning algorithms ensure accurate and detailed 3D reconstruction from your 2D images.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <h3 class="feature-title">Lightning Fast</h3>
+                        <p class="feature-description">Optimized processing pipeline delivers your 3D models in minutes, not hours.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-award"></i>
+                        </div>
+                        <h3 class="feature-title">Professional Quality</h3>
+                        <p class="feature-description">Industry-standard output formats and high-resolution models suitable for professional applications.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- User Dashboard Section -->
+    <section class="dashboard-section">
+        <div class="container">
+            <div class="dashboard-header">
+                <h2 class="dashboard-title">Your 3D Creation Dashboard</h2>
+                <p class="dashboard-subtitle">Track your progress, view statistics, and manage your 3D models all in one place</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <div class="dashboard-card-icon primary">
+                            <i class="fas fa-cube"></i>
+                        </div>
+                        <div>
+                            <div class="dashboard-card-title">Total Models</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-value">{{ models|length }}</div>
+                    <div class="dashboard-card-label">3D models generated</div>
+                    <div class="dashboard-card-change change-positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+{{ models|length }} this month</span>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <div class="dashboard-card-icon success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div class="dashboard-card-title">Success Rate</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-value">98.5%</div>
+                    <div class="dashboard-card-label">Successful generations</div>
+                    <div class="dashboard-card-change change-positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+2.1% from last month</span>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <div class="dashboard-card-icon warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div>
+                            <div class="dashboard-card-title">Avg. Processing</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-value">2.3m</div>
+                    <div class="dashboard-card-label">Minutes per model</div>
+                    <div class="dashboard-card-change change-positive">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>-0.4m from last month</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="recent-activity">
+                        <div class="recent-activity-title">
+                            <i class="fas fa-history me-2"></i>Recent Activity
+                        </div>
+                        <ul class="activity-list">
+                            {% if models %}
+                                {% for model in models|slice:":5" %}
+                                <li class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-cube"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-text">Generated 3D model "{{ model.name }}"</div>
+                                        <div class="activity-time">{{ model.created_at|date:"M d, Y at H:i" }}</div>
+                                    </div>
+                                    <div class="activity-status status-completed">Completed</div>
+                                </li>
+                                {% endfor %}
+                            {% else %}
+                                <li class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-info-circle"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-text">No activity yet</div>
+                                        <div class="activity-time">Start by uploading your first image</div>
+                                    </div>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="quick-actions">
+                        <div class="quick-actions-title">
+                            <i class="fas fa-bolt me-2"></i>Quick Actions
+                        </div>
+                        <div class="quick-actions-grid">
+                            <a href="{% url 'upload_image' %}" class="quick-action-btn">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload Image</span>
+                            </a>
+                            <a href="{% url 'gallery' %}" class="quick-action-btn">
+                                <i class="fas fa-images"></i>
+                                <span>View Gallery</span>
+                            </a>
+                            <a href="#" class="quick-action-btn" onclick="showTutorial()">
+                                <i class="fas fa-play-circle"></i>
+                                <span>Watch Tutorial</span>
+                            </a>
+                            <a href="#" class="quick-action-btn" onclick="showTips()">
+                                <i class="fas fa-lightbulb"></i>
+                                <span>Get Tips</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3D Models Gallery Section -->
+    <section class="models-section">
+        <div class="container">
+            <div class="models-container">
+                <h2 class="section-title mb-4">
+                    <i class="fas fa-cube me-2"></i>Your Generated 3D Models
+                </h2>
+                
+                {% if user.is_authenticated %}
+                    {% if models %}
+                        <div class="row g-4">
+                            {% for model in models %}
+                            <div class="col-md-4 col-lg-3">
+                                <div class="model-card">
+                                    {% if model.image_url %}
+                                        <img src="{{ model.image_url }}" alt="{{ model.name }}" class="model-thumbnail">
+                                    {% else %}
+                                        <div class="model-thumbnail d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));">
+                                            <i class="fas fa-cube fa-3x text-white"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div class="model-info">
+                                        <div class="model-title">{{ model.name }}</div>
+                                        <div class="model-size">
+                                            <i class="fas fa-file me-1"></i>
+                                            {{ model.file_size|filesizeformat }}
+                                        </div>
+                                        <a href="{{ model.model_url }}" class="btn view-3d-btn">
+                                            <i class="fas fa-eye me-2"></i>View 3D Model
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="no-models">
+                            <i class="fas fa-cube"></i>
+                            <h4 class="mb-3">No 3D Models Generated Yet</h4>
+                            <p class="mb-4">Start your 3D reconstruction journey by uploading your first image!</p>
+                            <a href="{% url 'upload_image' %}" class="btn btn-primary-custom">
+                                <i class="fas fa-upload me-2"></i>Upload First Image
+                            </a>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="no-models" style="padding: 6rem 3rem; text-align: center;">
+                        <i class="fas fa-lock fa-3x" style="color: var(--accent-color); margin-bottom: 1rem;"></i>
+                        <h4 class="mb-3">Gallery Locked</h4>
+                        <p class="mb-4" style="font-size: 1.1rem;">Sign in or create an account to view and manage your 3D models.</p>
+                        <div class="d-flex gap-3 justify-content-center flex-wrap">
+                            <a href="{% url 'login' %}" class="btn btn-primary-custom">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </a>
+                            <a href="{% url 'signup' %}" class="btn btn-secondary-custom">
+                                <i class="fas fa-user-plus me-2"></i>Create Account
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Bootstrap 5 JS and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+    <script>
+
+
+
+        // Tutorial and Tips functionality
+        function showTutorial() {
+            const modal = createModal('3D Reconstruction Tutorial', `
+                <div class="tutorial-content">
+                    <div class="tutorial-step">
+                        <h4><i class="fas fa-upload me-2"></i>Step 1: Upload Your Image</h4>
+                        <p>Choose a high-quality image with good contrast and clear subject matter. Supported formats: JPG, PNG, GIF (max 10MB).</p>
+                    </div>
+                    <div class="tutorial-step">
+                        <h4><i class="fas fa-cog me-2"></i>Step 2: AI Processing</h4>
+                        <p>Our advanced AI analyzes your image and begins the 3D reconstruction process. This typically takes 2-3 minutes.</p>
+                    </div>
+                    <div class="tutorial-step">
+                        <h4><i class="fas fa-cube me-2"></i>Step 3: Download Your Model</h4>
+                        <p>Once complete, download your 3D model in multiple formats: GLB, OBJ, FBX, or STL for use in various 3D software.</p>
+                    </div>
+                    <div class="tutorial-tips">
+                        <h5><i class="fas fa-lightbulb me-2"></i>Pro Tips:</h5>
+                        <ul>
+                            <li>Use images with good lighting and minimal shadows</li>
+                            <li>Ensure the subject is clearly visible and centered</li>
+                            <li>Higher resolution images produce better results</li>
+                            <li>Objects with distinct shapes work best</li>
+                        </ul>
+                    </div>
+                </div>
+            `);
+            document.body.appendChild(modal);
+        }
+
+        function showTips() {
+            const modal = createModal('3D Reconstruction Tips', `
+                <div class="tips-content">
+                    <div class="tip-category">
+                        <h4><i class="fas fa-camera me-2"></i>Image Quality</h4>
+                        <ul>
+                            <li>Use high-resolution images (minimum 1024x1024 pixels)</li>
+                            <li>Ensure good lighting without harsh shadows</li>
+                            <li>Keep the background simple and uncluttered</li>
+                            <li>Use images with high contrast</li>
+                        </ul>
+                    </div>
+                    <div class="tip-category">
+                        <h4><i class="fas fa-object-group me-2"></i>Subject Selection</h4>
+                        <ul>
+                            <li>Choose objects with distinct geometric shapes</li>
+                            <li>Avoid transparent or reflective materials</li>
+                            <li>Ensure the subject fills most of the frame</li>
+                            <li>Use objects with clear edges and boundaries</li>
+                        </ul>
+                    </div>
+                    <div class="tip-category">
+                        <h4><i class="fas fa-magic me-2"></i>Best Results</h4>
+                        <ul>
+                            <li>Architectural structures and buildings</li>
+                            <li>Geometric objects and sculptures</li>
+                            <li>Vehicles and machinery</li>
+                            <li>Furniture and home decor items</li>
+                        </ul>
+                    </div>
+                </div>
+            `);
+            document.body.appendChild(modal);
+        }
+
+        function createModal(title, content) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                padding: 2rem;
+            `;
+
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            modalContent.style.cssText = `
+                background: white;
+                border-radius: 20px;
+                padding: 2rem;
+                max-width: 600px;
+                width: 100%;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            `;
+
+            modalContent.innerHTML = `
+                <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0; color: var(--primary-color);">${title}</h3>
+                    <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-light);">&times;</button>
+                </div>
+                <div class="modal-body">
+                    ${content}
+                </div>
+            `;
+
+            modal.appendChild(modalContent);
+
+            // Close modal when clicking outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            return modal;
+        }
+
+        // Add CSS for modal content
+        const modalStyles = document.createElement('style');
+        modalStyles.textContent = `
+            .tutorial-content, .tips-content, .api-docs-content, .example-code-content {
+                line-height: 1.6;
+            }
+            .tutorial-step, .tip-category, .code-section {
+                margin-bottom: 1.5rem;
+                padding: 1rem;
+                background: var(--bg-accent);
+                border-radius: 12px;
+                border: 1px solid var(--border-color);
+            }
+            .tutorial-step h4, .tip-category h4, .code-section h4 {
+                color: var(--primary-color);
+                margin-bottom: 1rem;
+                font-size: 1.1rem;
+            }
+            .tutorial-step p, .tip-category ul {
+                color: var(--text-secondary);
+                margin: 0;
+            }
+            .tutorial-tips {
+                background: #f0fff4;
+                border-color: var(--success-color);
+            }
+            .tutorial-tips h5 {
+                color: var(--success-color);
+                margin-bottom: 0.75rem;
+            }
+            .tip-category ul {
+                list-style: none;
+                padding: 0;
+            }
+            .tip-category li {
+                padding: 0.25rem 0;
+                position: relative;
+                padding-left: 1.5rem;
+            }
+            .tip-category li::before {
+                content: '✓';
+                position: absolute;
+                left: 0;
+                color: var(--accent-color);
+                font-weight: bold;
+            }
+            .code-block {
+                background: #f8f9fa !important;
+                border: 1px solid #e9ecef !important;
+                border-radius: 8px !important;
+                padding: 1rem !important;
+                font-family: 'Courier New', monospace !important;
+                margin: 1rem 0 !important;
+                overflow-x: auto;
+            }
+            .code-block pre {
+                margin: 0;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+            .code-block code {
+                font-size: 0.9rem;
+                line-height: 1.4;
+            }
+            .api-endpoint {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 1rem;
+                margin: 1rem 0;
+                font-family: 'Courier New', monospace;
+            }
+            .api-method {
+                display: inline-block;
+                padding: 0.25rem 0.75rem;
+                border-radius: 6px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                margin-right: 1rem;
+            }
+            .method-post {
+                background: #10b981;
+                color: white;
+            }
+            .method-get {
+                background: #3b82f6;
+                color: white;
+            }
+            .api-url {
+                color: var(--text-primary);
+                font-weight: 500;
+            }
+            .api-params {
+                margin-top: 1rem;
+            }
+            .api-param {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0;
+                border-bottom: 1px solid var(--bg-secondary);
+            }
+            .api-param:last-child {
+                border-bottom: none;
+            }
+            .param-name {
+                font-family: 'Courier New', monospace;
+                color: var(--accent-color);
+                font-weight: 500;
+            }
+            .param-type {
+                color: var(--text-light);
+                font-size: 0.8rem;
+            }
+            .param-required {
+                background: var(--error-color);
+                color: white;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.7rem;
+                font-weight: 500;
+            }
+            .param-optional {
+                background: var(--warning-color);
+                color: white;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.7rem;
+                font-weight: 500;
+            }
+        `;
+        document.head.appendChild(modalStyles);
+    </script>
+</body>
+</html>
